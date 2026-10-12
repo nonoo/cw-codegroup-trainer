@@ -39,7 +39,7 @@
   h1 { font-size: 20px; margin: 0 0 4px; }
   .params { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
   button {
     font: inherit;
     padding: 9px 18px;
@@ -81,8 +81,14 @@
   }
   textarea::placeholder { color: #5b6472; letter-spacing: 0; }
   textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
-  .hint { color: var(--muted); font-size: 12.5px; }
+  .symbols { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .symbols button {
+    min-width: 50px;
+    padding: 8px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 17px;
+    letter-spacing: 0;
+  }
 
   dialog {
     border: 1px solid var(--border);
@@ -141,16 +147,14 @@
   <div class="controls">
     <button id="play" class="primary" type="button">Play</button>
     <button id="stop" type="button">Stop</button>
+    <button id="check" type="button">Check Result</button>
     <div class="elapsed" id="elapsed" title="Playback time">0.0 s</div>
   </div>
 
   <textarea id="input" placeholder="Type the code groups you copied here, separated by spaces…"
             autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 
-  <div class="row">
-    <button id="check" type="button">Check Result</button>
-    <span class="hint">Not case sensitive — separate the groups with spaces.</span>
-  </div>
+  <div class="symbols" id="symbols"></div>
 </main>
 
 <dialog id="summary">
@@ -181,7 +185,8 @@
   const ROUND_SECONDS = 60;
   const VOLUME = 0.5;          // 0..1 (jscwlib gain)
   const START_DELAY = 0.5;     // seconds of silence after pressing Play
-  const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.=?/";
+  const SYMBOLS = ".=?/";     // also offered as one-tap buttons under the textarea
+  const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" + SYMBOLS;
   const MIN_GROUP_LEN = 2;
   const MAX_GROUP_LEN = 7;
 
@@ -201,6 +206,7 @@
   const statsEl = document.getElementById("stats");
   const warningEl = document.getElementById("warning");
   const rowsEl = document.getElementById("result-rows");
+  const symbolsEl = document.getElementById("symbols");
 
   let groups = [];        // groups sent in the current round, uppercase
   let state = "idle";     // idle | playing | paused | finished
@@ -231,6 +237,26 @@
     inputEl.value = "";
     renderControls();
     updateElapsed();
+  }
+
+  /* ------------------------------------------------------------ symbols */
+
+  // One-tap buttons for the characters phones hide behind a symbol keyboard.
+  // They type into the textarea at the caret, like the keyboard would.
+  function insertSymbol(ch) {
+    inputEl.focus();
+    const start = inputEl.selectionStart === null ? inputEl.value.length : inputEl.selectionStart;
+    const end = inputEl.selectionEnd === null ? start : inputEl.selectionEnd;
+    inputEl.setRangeText(ch, start, end, "end");
+  }
+
+  for (const ch of SYMBOLS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = ch;
+    btn.setAttribute("aria-label", "Insert " + ch);
+    btn.addEventListener("click", () => insertSymbol(ch));
+    symbolsEl.append(btn);
   }
 
   /* ------------------------------------------------------------ playback */

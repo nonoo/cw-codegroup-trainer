@@ -21,8 +21,8 @@ CW library locally, and the audio is synthesized in the browser.
 - On load, a **~1 minute round** of random code groups is generated (no autoplay).
 - **Play** toggles start/pause, **Stop** stops and rewinds to the beginning, and the
   elapsed-time indicator counts playback seconds.
-- Write the groups you copied into the textarea (case-insensitive, separated by spaces)
-  and press **Check Result**.
+- Write the groups you copied into the textarea (case-insensitive, separated by spaces) and
+  press **Check Result**; the buttons under the textarea type `. = ? /` at the cursor.
 - The summary shows groups sent / copied, correct groups, character errors, **error rate**,
   and a per-group diff: red = wrong or missed character, amber = extra character typed,
   `_` = missing position, `—` = whole group not copied.
