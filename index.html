@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CW Codegroup Trainer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#101215">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CW Trainer">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #101215;
+    --panel: #171a1f;
+    --panel-2: #1e232a;
+    --border: #2b3138;
+    --fg: #e7eaee;
+    --muted: #9aa4b1;
+    --accent: #4f9dff;
+    --accent-fg: #06121f;
+    --err: #ff6b6b;
+    --warn: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px 16px 56px;
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+  main { width: 100%; max-width: 720px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .params { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  button {
+    font: inherit;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--fg);
+    cursor: pointer;
+  }
+  button:hover { border-color: #3d4653; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+    font-weight: 600;
+    min-width: 96px;
+  }
+  button.primary:hover { background: #63a9ff; border-color: #63a9ff; }
+  .elapsed {
+    margin-left: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 19px;
+    color: var(--muted);
+    min-width: 84px;
+    text-align: right;
+  }
+  textarea {
+    width: 100%;
+    min-height: 176px;
+    resize: vertical;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    font: 16px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 1px;
+  }
+  textarea::placeholder { color: #5b6472; letter-spacing: 0; }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .hint { color: var(--muted); font-size: 12.5px; }
+
+  dialog {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fg);
+    border-radius: 12px;
+    padding: 0;
+    width: min(680px, calc(100vw - 32px));
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, .65); }
+  .dlg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dlg-head h2 { font-size: 17px; margin: 0; }
+  .dlg-body { padding: 14px 18px 18px; max-height: min(64vh, 560px); overflow: auto; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px 18px; margin-bottom: 14px; }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12.5px; }
+  .warn { color: var(--warn); font-size: 13.5px; margin: 0 0 12px; }
+  .legend { color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+  table.result { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 15px; }
+  table.result th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 12.5px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+  }
+  table.result td { padding: 3px 8px; border-bottom: 1px solid #21262d; vertical-align: top; }
+  td.idx, th.idx { color: var(--muted); width: 2.4em; text-align: right; }
+  td.err, th.err { color: var(--muted); width: 3em; text-align: right; }
+  tr.bad td.err { color: var(--err); }
+  .ch { display: inline-block; min-width: 1.05em; text-align: center; }
+  .ch.sub { color: var(--err); font-weight: 700; }
+  .ch.ins { color: var(--warn); font-weight: 700; }
+  .ch.miss { color: var(--err); }
+  .ch.gap { color: #4a525e; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>CW Codegroup Trainer</h1>
+    <p class="params">20&nbsp;WPM · 600&nbsp;Hz · ~1&nbsp;min · letters, digits, <span class="mono">. = ? /</span></p>
+  </header>
+
+  <div class="controls">
+    <button id="play" class="primary" type="button">Play</button>
+    <button id="stop" type="button">Stop</button>
+    <div class="elapsed" id="elapsed" title="Playback time">0.0 s</div>
+  </div>
+
+  <textarea id="input" placeholder="Type the code groups you copied here, separated by spaces…"
+            autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+
+  <div class="row">
+    <button id="check" type="button">Check Result</button>
+    <span class="hint">Not case sensitive — separate the groups with spaces.</span>
+  </div>
+</main>
+
+<dialog id="summary">
+  <div class="dlg-head">
+    <h2>Result</h2>
+    <button id="close" type="button">Close (new groups)</button>
+  </div>
+  <div class="dlg-body">
+    <div class="stats" id="stats"></div>
+    <p class="warn" id="warning" hidden></p>
+    <p class="legend">red = wrong or missed character · amber = extra character · _ = missing position</p>
+    <table class="result">
+      <thead>
+        <tr><th class="idx">#</th><th>Sent</th><th>You copied</th><th class="err">Err</th></tr>
+      </thead>
+      <tbody id="result-rows"></tbody>
+    </table>
+  </div>
+</dialog>
+
+<script src="jscwlib-0.3.0.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const WPM = 20;
+  const FREQ = 600;
+  const ROUND_SECONDS = 60;
+  const VOLUME = 0.5;          // 0..1 (jscwlib gain)
+  const START_DELAY = 0.5;     // seconds of silence after pressing Play
+  const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.=?/";
+  const MIN_GROUP_LEN = 2;
+  const MAX_GROUP_LEN = 7;
+
+  const cw = new jscw();
+  cw.setWpm(WPM);
+  cw.setFreq(FREQ);
+  cw.setVolume(VOLUME);
+  cw.setStartDelay(START_DELAY);
+
+  const playBtn = document.getElementById("play");
+  const stopBtn = document.getElementById("stop");
+  const elapsedEl = document.getElementById("elapsed");
+  const inputEl = document.getElementById("input");
+  const checkBtn = document.getElementById("check");
+  const dialog = document.getElementById("summary");
+  const closeBtn = document.getElementById("close");
+  const statsEl = document.getElementById("stats");
+  const warningEl = document.getElementById("warning");
+  const rowsEl = document.getElementById("result-rows");
+
+  let groups = [];        // groups sent in the current round, uppercase
+  let state = "idle";     // idle | playing | paused | finished
+
+  /* ---------------------------------------------------------------- round */
+
+  function randomGroup() {
+    const len = MIN_GROUP_LEN + Math.floor(Math.random() * (MAX_GROUP_LEN - MIN_GROUP_LEN + 1));
+    let g = "";
+    for (let i = 0; i < len; i++) {
+      g += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+    }
+    return g;
+  }
+
+  function newRound() {
+    stopPlayback();
+    groups = [];
+    let text = "";
+    for (;;) {
+      groups.push(randomGroup());
+      text = groups.join(" ");
+      if (cw.gen_morse_events(text).length >= ROUND_SECONDS) {
+        break;
+      }
+    }
+    cw.setText(text);
+    inputEl.value = "";
+    renderControls();
+    updateElapsed();
+  }
+
+  /* ------------------------------------------------------------ playback */
+
+  // jscwlib creates its AudioContext in the constructor, i.e. before the
+  // first user gesture, so the context starts suspended in Chrome and must
+  // be resumed inside a gesture handler before it will make any sound.
+  function resumeAudioContext() {
+    if (cw.audioCtx && cw.audioCtx.state === "suspended") {
+      cw.audioCtx.resume();
+    }
+  }
+
+  function stopPlayback() {
+    if (cw.init_done) {   // stop() touches nodes that only exist after init()
+      cw.stop();
+    }
+    resumeAudioContext();
+    state = "idle";
+  }
+
+  function elapsedSeconds() {
+    return state === "idle" ? 0 : cw.getTime();
+  }
+
+  function updateElapsed() {
+    elapsedEl.textContent = elapsedSeconds().toFixed(1) + " s";
+  }
+
+  function renderControls() {
+    playBtn.textContent = state === "playing" ? "Pause" : "Play";
+  }
+
+  playBtn.addEventListener("click", () => {
+    if (state === "playing") {
+      cw.pause();
+      state = "paused";
+    } else if (state === "paused") {
+      cw.pause();               // suspends or resumes the audio context
+      state = "playing";
+    } else {
+      resumeAudioContext();
+      cw.play();
+      state = "playing";
+      inputEl.focus();
+    }
+    renderControls();
+    updateElapsed();
+  });
+
+  stopBtn.addEventListener("click", () => {
+    stopPlayback();
+    renderControls();
+    updateElapsed();
+  });
+
+  cw.onFinished = () => {
+    state = "finished";
+    renderControls();
+    updateElapsed();
+  };
+
+  setInterval(updateElapsed, 100);
+
+  /* -------------------------------------------------------------- result */
+
+  // Levenshtein alignment: marks substitutions, dropped and extra characters.
+  function align(sent, recv) {
+    const n = sent.length, m = recv.length;
+    const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+    for (let i = 0; i <= n; i++) dp[i][0] = i;
+    for (let j = 0; j <= m; j++) dp[0][j] = j;
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        const sub = dp[i - 1][j - 1] + (sent[i - 1] === recv[j - 1] ? 0 : 1);
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, sub);
+      }
+    }
+    const ops = [];
+    let i = n, j = m;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 &&
+          dp[i][j] === dp[i - 1][j - 1] + (sent[i - 1] === recv[j - 1] ? 0 : 1)) {
+        ops.push(sent[i - 1] === recv[j - 1]
+          ? { op: "=", a: sent[i - 1], b: recv[j - 1] }
+          : { op: "x", a: sent[i - 1], b: recv[j - 1] });
+        i--; j--;
+      } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
+        ops.push({ op: "-", a: sent[i - 1] });
+        i--;
+      } else {
+        ops.push({ op: "+", b: recv[j - 1] });
+        j--;
+      }
+    }
+    ops.reverse();
+    return { ops, errors: dp[n][m] };
+  }
+
+  function span(text, cls) {
+    const s = document.createElement("span");
+    s.className = cls ? "ch " + cls : "ch";
+    s.textContent = text;
+    return s;
+  }
+
+  function opsToCells(ops, side) {
+    const cells = [];
+    for (const op of ops) {
+      if (side === "sent") {
+        if (op.op === "-") cells.push([op.a, "miss"]);
+        else if (op.op === "+") cells.push(["_", "gap"]);
+        else cells.push([op.a, ""]);
+      } else {
+        if (op.op === "x") cells.push([op.b, "sub"]);
+        else if (op.op === "+") cells.push([op.b, "ins"]);
+        else if (op.op === "-") cells.push(["_", "gap"]);
+        else cells.push([op.b, ""]);
+      }
+    }
+    return cells;
+  }
+
+  function cellsToTd(cells, className) {
+    const td = document.createElement("td");
+    td.className = className;
+    if (cells === null) {
+      td.appendChild(span("—", "gap"));
+    } else {
+      for (const [c, cls] of cells) td.appendChild(span(c, cls));
+    }
+    return td;
+  }
+
+  function stat(label, value) {
+    const div = document.createElement("div");
+    div.className = "stat";
+    const b = document.createElement("b");
+    b.textContent = value;
+    const s = document.createElement("span");
+    s.textContent = label;
+    div.append(b, s);
+    return div;
+  }
+
+  function showSummary() {
+    const copied = inputEl.value.trim().split(/\s+/).filter(Boolean).map(g => g.toUpperCase());
+
+    let errors = 0;
+    let sentChars = 0;
+    let correct = 0;
+    const rows = [];
+
+    for (let i = 0; i < groups.length; i++) {
+      const sent = groups[i];
+      sentChars += sent.length;
+      if (i < copied.length) {
+        const { ops, errors: e } = align(sent, copied[i]);
+        errors += e;
+        if (e === 0) correct++;
+        rows.push({ idx: i + 1, sent: opsToCells(ops, "sent"), recv: opsToCells(ops, "recv"), errors: e });
+      } else {
+        errors += sent.length;
+        rows.push({
+          idx: i + 1,
+          sent: [...sent].map(c => [c, "miss"]),
+          recv: null,
+          errors: sent.length,
+        });
+      }
+    }
+    for (let i = groups.length; i < copied.length; i++) {
+      errors += copied[i].length;
+      rows.push({
+        idx: i + 1,
+        sent: null,
+        recv: [...copied[i]].map(c => [c, "ins"]),
+        errors: copied[i].length,
+        extra: true,
+      });
+    }
+
+    // errors is the summed Levenshtein distance, so characters typed beyond the
+    // round count as errors too and can push the rate past 100 %.
+    const errorRate = sentChars ? 100 * errors / sentChars : 0;
+
+    statsEl.replaceChildren(
+      stat("groups sent", String(groups.length)),
+      stat("groups copied", String(copied.length)),
+      stat("correct groups", correct + " / " + groups.length),
+      stat("character errors", errors + " / " + sentChars),
+      stat("error rate", errorRate.toFixed(1) + " %"),
+    );
+
+    if (copied.length !== groups.length) {
+      warningEl.textContent = "Group count differs: " + groups.length + " sent, " + copied.length +
+        " copied — uncopied groups count as errors (did you miss a space between groups?)";
+      warningEl.hidden = false;
+    } else {
+      warningEl.hidden = true;
+    }
+
+    rowsEl.replaceChildren(...rows.map(r => {
+      const tr = document.createElement("tr");
+      if (r.errors > 0) tr.className = "bad";
+      if (r.extra) tr.className = "bad extra";
+
+      const idx = document.createElement("td");
+      idx.className = "idx";
+      idx.textContent = r.idx;
+
+      const err = document.createElement("td");
+      err.className = "err";
+      err.textContent = r.errors;
+
+      tr.append(idx, cellsToTd(r.sent, "sent"), cellsToTd(r.recv, "recv"), err);
+      return tr;
+    }));
+
+    dialog.showModal();
+  }
+
+  checkBtn.addEventListener("click", () => {
+    stopPlayback();
+    renderControls();
+    updateElapsed();
+    showSummary();
+  });
+
+  // closing the summary (button or Esc) starts a fresh round
+  closeBtn.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", newRound);
+
+  newRound();
+
+  /* ------------------------------------------------------------- offline */
+
+  // Makes the page installable and usable offline. Only meaningful over
+  // http(s): file:// cannot register a service worker. Failures are
+  // non-fatal, the trainer itself needs no network.
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(err => {
+        console.warn("service worker registration failed:", err);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
