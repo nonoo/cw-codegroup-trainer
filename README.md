@@ -44,8 +44,8 @@ browsers refuse to install a page or register a service worker from `file://`.
 
 ## Hosting
 
-Static files only, no build step. The published copy is meant to be served by GitHub Pages
-from the `main` branch (*Settings → Pages → Deploy from a branch → `main` / `/ (root)`*):
+Static files only, no build step. The published copy is served by GitHub Pages from the
+`main` branch (*Settings → Pages → Deploy from a branch → `main` / `/ (root)`*):
 
 <https://nonoo.github.io/cw-codegroup-trainer/>
 
