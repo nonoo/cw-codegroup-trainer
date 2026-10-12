@@ -42,6 +42,18 @@ python3 -m http.server 8000
 well. Opening `index.html` directly from disk (`file://`) is fine for practice, but
 browsers refuse to install a page or register a service worker from `file://`.
 
+## Hosting
+
+Static files only, no build step. The published copy is meant to be served by GitHub Pages
+from the `main` branch (*Settings → Pages → Deploy from a branch → `main` / `/ (root)`*):
+
+<https://nonoo.github.io/cw-codegroup-trainer/>
+
+HTTPS (or localhost) matters — browsers only offer install and service workers on secure
+origins. Any static host works, as long as `sw.js` and `manifest.webmanifest` sit next to
+`index.html`: the worker resolves its files relative to its own URL, so serving from a
+subdirectory is fine.
+
 ## Files
 
 | File | Purpose |
